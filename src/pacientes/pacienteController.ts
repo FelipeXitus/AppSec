@@ -9,6 +9,7 @@ import { AppError, Status } from '../error/ErrorHandler.js'
 import { encryptPassword } from '../utils/senhaUtils.js'
 import { pacienteSchema } from './pacienteYupSchema.js'
 import { sanitizacaoPaciente } from './pacienteSanitizations.js'
+import { logger } from '../logger.js'
 
 export const consultaPorPaciente = async (
   req: Request,
@@ -19,13 +20,13 @@ export const consultaPorPaciente = async (
   try {
     const listaPacientes = await AppDataSource.manager.query(query, [userInput])
     if (listaPacientes.length === 0) {
-      res.status(404).json('Paciente não encontrado!')
+      throw new AppError('Paciente não encontrado', Status.NOT_FOUND)
     } else {
       res.status(200).json(listaPacientes)
     }
   } catch (error) {
-    console.log(error)
-    res.status(500).json({ message: 'Erro interno do servidor' })
+    logger.error('Erro ao consultar paciente', error)
+    throw new AppError('Erro ao consultar paciente', Status.INTERNAL_SERVER_ERROR)
   }
 }
 
@@ -33,6 +34,7 @@ export const criarPaciente = async (
   req: Request,
   res: Response
 ): Promise<void> => {
+  logger.info('Iniciando criação de paciente')
   const pacienteData = req.body
   const pacienteSanitizado: Paciente = sanitizacaoPaciente(pacienteData)
   await pacienteSchema.validate(pacienteSanitizado)
@@ -51,12 +53,14 @@ export const criarPaciente = async (
     historico
   } = pacienteSanitizado
   if (!CPFValido(cpf)) {
+    logger.warn('CPF inválido fornecido: ' + cpf)
     throw new AppError('CPF Inválido!', Status.BAD_REQUEST)
   }
   const existePacienteComCPF = await AppDataSource.getRepository(Paciente).findOne({
     where: { cpf }
   })
   if (existePacienteComCPF != null) {
+    logger.warn('Tentativa de criar paciente com CPF já existente: ' + cpf)
     throw new AppError('Já existe um paciente cadastrado com esse CPF!', Status.CONFLICT)
   }
   if (possuiPlanoSaude && planosSaude !== undefined) {
@@ -97,9 +101,8 @@ export const criarPaciente = async (
 
     res.status(202).json(pacienteSemDadosSensiveis)
   } catch (error) {
-      console.log(error)
-      throw new AppError('Paciente não foi criado', Status.BAD_GATEWAY)
-    }
+    logger.error('Erro ao criar paciente', error)
+    throw new AppError('Paciente não foi criado', Status.BAD_GATEWAY)
   }
 }
 
@@ -172,6 +175,7 @@ export const atualizarPaciente = async (
   let {
     nome,
     email,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     senha,
     estaAtivo,
     telefone,
