@@ -1,5 +1,5 @@
 {
-   "name": "API-Voll_Med",
+   "name": "api-voll-med",
    "version": "1.0.0",
    "description": "",
    "type": "module",
@@ -44,7 +44,6 @@
       "redis": "^4.6.6",
       "reflect-metadata": "^0.1.13",
       "sanitize": "^2.1.2",
-      "sqlite3": "^5.1.6",
       "streamifier": "^0.1.1",
       "svg-parser": "^2.0.4",
       "svg2img": "^1.0.0-beta.2",

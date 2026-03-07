@@ -1,5 +1,4 @@
-// import { type Request, type Response } from 'express'
-import { Request, Response } from 'express';
+import { type Request, type Response } from 'express'
 import { Paciente } from './pacienteEntity.js'
 import { AppDataSource } from '../data-source.js'
 import { Endereco } from '../enderecos/enderecoEntity.js'
@@ -8,86 +7,78 @@ import { mapeiaPlano } from '../utils/planoSaudeUtils.js'
 import { Consulta } from '../consultas/consultaEntity.js'
 import { AppError, Status } from '../error/ErrorHandler.js'
 import { encryptPassword } from '../utils/senhaUtils.js'
-import { pacienteSchema } from './pacienteYupSchema.js';
+import { pacienteSchema } from './pacienteYupSchema.js'
 import { sanitizacaoPaciente } from './pacienteSanitizations.js'
 
 export const consultaPorPaciente = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { userInput } = req.query;
-  const query = `SELECT * FROM paciente WHERE nome = ?`;
+  const { userInput } = req.query
+  const query = 'SELECT * FROM paciente WHERE nome = ?'
   try {
-    const listaPacientes = await AppDataSource.manager.query(query, [userInput]);
+    const listaPacientes = await AppDataSource.manager.query(query, [userInput])
     if (listaPacientes.length === 0) {
-      res.status(404).json('Paciente não encontrado!');
+      res.status(404).json('Paciente não encontrado!')
     } else {
-      res.status(200).json(listaPacientes);
+      res.status(200).json(listaPacientes)
     }
   } catch (error) {
     console.log(error)
-    res.status(500).json({ message: 'Erro interno do servidor' });
+    res.status(500).json({ message: 'Erro interno do servidor' })
   }
 }
-
 
 export const criarPaciente = async (
   req: Request,
   res: Response
 ): Promise<void> => {
+  const pacienteData = req.body
+  const pacienteSanitizado: Paciente = sanitizacaoPaciente(pacienteData)
+  await pacienteSchema.validate(pacienteSanitizado)
+  let {
+    cpf,
+    nome,
+    email,
+    senha,
+    estaAtivo,
+    possuiPlanoSaude,
+    endereco,
+    telefone,
+    planosSaude,
+    imagemUrl,
+    imagem,
+    historico
+  } = pacienteSanitizado
+  if (!CPFValido(cpf)) {
+    throw new AppError('CPF Inválido!', Status.BAD_REQUEST)
+  }
+  const existePacienteComCPF = await AppDataSource.getRepository(Paciente).findOne({
+    where: { cpf }
+  })
+  if (existePacienteComCPF != null) {
+    throw new AppError('Já existe um paciente cadastrado com esse CPF!', Status.CONFLICT)
+  }
+  if (possuiPlanoSaude && planosSaude !== undefined) {
+    // transforma array de numbers em array de strings com os nomes dos planos definidos no enum correspondente
+    planosSaude = mapeiaPlano(planosSaude)
+  }
+  const senhaCriptografada = encryptPassword(senha)
+  const paciente = new Paciente(
+    cpf,
+    nome,
+    email,
+    senhaCriptografada,
+    telefone,
+    planosSaude,
+    estaAtivo,
+    imagemUrl,
+    imagem,
+    historico
+  )
+  paciente.possuiPlanoSaude = possuiPlanoSaude
+  const enderecoPaciente = new Endereco()
   try {
-    const pacienteData = req.body
-
-    const pacienteSanitizado: Paciente = sanitizacaoPaciente(pacienteData)
-    await pacienteSchema.validate(pacienteSanitizado);
-
-    let {
-      cpf,
-      nome,
-      email,
-      senha,
-      estaAtivo,
-      possuiPlanoSaude,
-      endereco,
-      telefone,
-      planosSaude,
-      imagemUrl,
-      imagem,
-      historico
-    } = pacienteSanitizado
-
-    if (!CPFValido(cpf)) {
-      throw new AppError('CPF Inválido!')
-    }
-
-    const existePacienteComCPF = await AppDataSource.getRepository(Paciente).findOne({
-      where: { cpf }
-    })
-    if (existePacienteComCPF != null) {
-      res.status(409).json({ message: 'Já existe um paciente com esse CPF!' })
-    }
-
-    if (possuiPlanoSaude === true && planosSaude !== undefined) {
-      // transforma array de numbers em array de strings com os nomes dos planos definidos no enum correspondente
-      planosSaude = mapeiaPlano(planosSaude)
-    }
-
-    const senhaCriptografada = encryptPassword(senha)
-    const paciente = new Paciente(
-      cpf,
-      nome,
-      email,
-      senhaCriptografada,
-      telefone,
-      planosSaude,
-      estaAtivo,
-      imagemUrl,
-      imagem,
-      historico
-    )
-    paciente.possuiPlanoSaude = possuiPlanoSaude
-    const enderecoPaciente = new Endereco()
-
     if (endereco !== undefined) {
       enderecoPaciente.cep = endereco.cep
       enderecoPaciente.rua = endereco.rua
@@ -102,15 +93,12 @@ export const criarPaciente = async (
 
     await AppDataSource.manager.save(Paciente, paciente)
 
-    const {senha: _senha, cpf: _cpf, ...pacienteSemDadosSensiveis} = paciente
+    const { senha: _senha, cpf: _cpf, ...pacienteSemDadosSensiveis } = paciente
 
     res.status(202).json(pacienteSemDadosSensiveis)
   } catch (error) {
-    if (error.name === 'ValidationError') {
-      res.status(400).json({ message: error.message })
-    } else {
-      res.status(502).json({ 'Paciente não foi criado': error })
       console.log(error)
+      throw new AppError('Paciente não foi criado', Status.BAD_GATEWAY)
     }
   }
 }
@@ -142,7 +130,7 @@ export const lerPaciente = async (
   })
 
   if (paciente === null) {
-    res.status(404).json('Paciente não encontrado!')
+    throw new AppError('Paciente não encontrado!', Status.NOT_FOUND)
   } else {
     res.status(200).json(paciente)
   }
@@ -213,7 +201,7 @@ export const atualizarPaciente = async (
     })
 
     if (paciente === null) {
-      res.status(404).json('Paciente não encontrado!')
+      throw new AppError('Paciente não encontrado!', Status.NOT_FOUND)
     } else {
       paciente.cpf = cpf
       paciente.nome = nome
@@ -230,7 +218,7 @@ export const atualizarPaciente = async (
       res.status(200).json(paciente)
     }
   } catch (error) {
-    res.status(502).json('Paciente não foi atualizado!')
+    throw new AppError('Paciente não foi atualizado!', Status.BAD_GATEWAY)
   }
 }
 

@@ -3,7 +3,7 @@ import { AppDataSource } from '../data-source.js'
 import { Especialista } from './EspecialistaEntity.js'
 import { mapeiaPlano } from '../utils/planoSaudeUtils.js'
 import { Endereco } from '../enderecos/enderecoEntity.js'
-import { AppError } from '../error/ErrorHandler.js'
+import { AppError, Status } from '../error/ErrorHandler.js'
 import { encryptPassword } from '../utils/senhaUtils.js'
 
 // Get All
@@ -58,9 +58,9 @@ export const criarEspecialista = async (
     res.status(200).json(especialista)
   } catch (error) {
     if ((await AppDataSource.manager.findOne(Especialista, { where: { crm } })) != null) {
-      res.status(422).json({ message: 'Crm já cadastrado' })
+      throw new AppError('CRM já cadastrado', Status.CONFLICT)
     } else {
-      throw new AppError('Especialista não foi criado')
+      throw new AppError('Especialista não foi criado', Status.BAD_GATEWAY)
     }
   }
 }

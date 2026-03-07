@@ -25,6 +25,7 @@ services:
     # irá montar a pasta atual para dentro do container em "/app".
     volumes:
       - .:/app
+      - /app/node_modules
       # comando "sh -c"  executa o comando npm install, npm start e o watch, tudo em um único shell. O comando watch é executado em um loop infinito usando o comando inotifywait, que irá monitorar alterações em qualquer arquivo na pasta "/app" e automaticamente executará o comando "npm start" quando houver alterações.
     command: sh -c "bash /app/wait-for-it.sh -t 0 db:3306 -- npm install && npm start && while inotifywait -r -e modify /app; do npm start; done"
     networks:

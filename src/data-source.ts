@@ -1,4 +1,4 @@
-import { DataSource, DataSourceOptions } from 'typeorm'
+import { DataSource } from 'typeorm'
 import 'reflect-metadata'
 import { Paciente } from './pacientes/pacienteEntity.js'
 import { Endereco } from './enderecos/enderecoEntity.js'
@@ -26,14 +26,4 @@ const AppDataSourceMysql = new DataSource({
   subscribers: []
 })
 
-const AppDataSourceSqlite = new DataSource({
-  type: 'sqlite',
-  database: './src/database/database.sqlite', // caminho para o arquivo do banco de dados SQLite
-  synchronize: true,
-  logging: false,
-  entities: [Paciente, Endereco, Especialista, Avaliacoes, Clinica, Consulta, Autenticaveis, Imagem],
-  migrations: [],
-  subscribers: []
-})
-
-export const AppDataSource = process.env.DB_TYPE === 'sqlite' ? AppDataSourceSqlite : AppDataSourceMysql
+export const AppDataSource = AppDataSourceMysql

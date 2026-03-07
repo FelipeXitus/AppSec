@@ -6,9 +6,8 @@ import { AppError, Status } from '../error/ErrorHandler.js'
 import { Imagem } from '../imagem/imagemEntity.js'
 import { unlinkSync } from 'node:fs'
 import { extname, resolve, dirname } from 'path'
-import mime from 'mime-types';
-import { lookup } from 'node:dns'
-import fs from 'fs';
+import mime from 'mime-types'
+import fs from 'fs'
 
 const __filename = import.meta.url.substring(7)
 const __dirname = dirname(__filename)
@@ -24,7 +23,7 @@ export const criaImagem = async (req: Request, res: Response): Promise<Response>
       }
     })
     if (paciente == null) {
-      return res.status(400).json({ error: 'Paciente não encontrado' })
+      throw new AppError('Paciente não encontrado', Status.NOT_FOUND)
     }
 
     if (paciente.imagem != null) {
@@ -32,32 +31,32 @@ export const criaImagem = async (req: Request, res: Response): Promise<Response>
     }
 
     if (!req.file) {
-      throw new AppError('Arquivo de imagem não fornecido', Status.BAD_REQUEST);
+      throw new AppError('Arquivo de imagem não fornecido', Status.BAD_REQUEST)
     }
 
     console.log(req.file)
     const { originalname: nome, size: tamanho, filename: key, url = '' } = req.file
 
     const acceptedMimeTypes = ['image/jpeg', 'image/png']
-    const maxSize = 20 * 1024 * 1024 //20MB
+    const maxSize = 20 * 1024 * 1024 // 20MB
 
-    const ext = extname(req.file.originalname).slice(1).toLocaleLowerCase();
-    const mimetype = mime.lookup(ext);
+    const ext = extname(req.file.originalname).slice(1).toLocaleLowerCase()
+    const mimetype = mime.lookup(ext)
 
-    if(!mimetype || !acceptedMimeTypes.includes(mimetype)){
-      return res.status(400).json({ error: 'Insira uma imagem válida.' })
+    if (!mimetype || !acceptedMimeTypes.includes(mimetype)) {
+      throw new AppError('Insira uma imagem válida.', Status.BAD_REQUEST)
     }
 
-    const imageContent = fs.readFileSync(req.file.path, 'utf8');
+    const imageContent = fs.readFileSync(req.file.path, 'utf8')
 
-    if(/\<script[\s\S]*?\>/s.test(imageContent)){
-      return res.status(400).json({ error: 'Imagem contém scripts não permitidos!' })
+    if (/\<script[\s\S]*?\>/s.test(imageContent)) {
+      throw new AppError('Imagem contém scripts não permitidos!', Status.BAD_REQUEST)
     }
 
-    if(tamanho > maxSize) {
-      return res.status(400).json({ error: 'Imagem excede o tamanho permitido!' })
+    if (tamanho > maxSize) {
+      throw new AppError('O tamanho da imagem excede o limite permitido de 20MB', Status.BAD_REQUEST)
     }
-    
+
     const imagem = new Imagem()
 
     imagem.nome = nome
@@ -68,17 +67,17 @@ export const criaImagem = async (req: Request, res: Response): Promise<Response>
     await AppDataSource.manager.save(Imagem, imagem)
 
     if (imagem.url === '') {
-      imagem.url = resolve(__dirname, ".." , ".." ,"tmp", "uploads", key)
+      imagem.url = resolve(__dirname, '..', '..', 'tmp', 'uploads', key)
     }
 
     paciente.imagem = imagem
     await AppDataSource.manager.save(Paciente, paciente)
 
-    const {url: _url, ...imagemSemCaminho} = imagem;
+    const { url: _url, ...imagemSemCaminho } = imagem
 
     return res.json(imagemSemCaminho)
   } catch (error) {
-    return res.status(400).json({ error: error.message })
+    throw new AppError('Erro ao criar imagem', Status.INTERNAL_SERVER_ERROR)
   }
 }
 
@@ -107,12 +106,12 @@ export const destroiImagem = async (req: Request, res: Response): Promise<Respon
     })
 
     if (paciente == null) {
-      return res.status(400).json({ error: 'Paciente não encontrado' })
+      throw new AppError('Paciente não encontrado', Status.NOT_FOUND)
     }
 
     const imagem = paciente.imagem
     if (!imagem) {
-      return res.status(400).json({ error: "Image doesn't exist" })
+      throw new AppError('Paciente não possui imagem', Status.NOT_FOUND)
     }
 
     unlinkSync(
@@ -128,8 +127,8 @@ export const destroiImagem = async (req: Request, res: Response): Promise<Respon
 
     await AppDataSource.manager.delete(Imagem, imagem)
 
-    return res.json('Image deleted').status(200)
+    return res.json('Imagem deletada').status(200)
   } catch (error) {
-    return res.status(404).json({ error: error.message })
+    throw new AppError('Erro ao deletar imagem', Status.INTERNAL_SERVER_ERROR)
   }
 }

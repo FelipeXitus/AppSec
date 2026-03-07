@@ -1,4 +1,3 @@
-
 import { type Request, type Response } from 'express'
 import { AppDataSource } from '../data-source.js'
 import { Endereco } from '../enderecos/enderecoEntity.js'
@@ -6,6 +5,7 @@ import { Especialista } from '../especialistas/EspecialistaEntity.js'
 import { mapeiaPlano } from '../utils/planoSaudeUtils.js'
 import { Clinica } from './clinicaEntity.js'
 import { encryptPassword } from '../utils/senhaUtils.js'
+import { AppError, Status } from '../error/ErrorHandler.js'
 
 export const criarClinica = async (req: Request, res: Response): Promise<void> => {
   const {
@@ -91,7 +91,9 @@ export const listaEspecialistasPorClinica = async (req: Request, res: Response):
     where: { id },
     relations: ['especialistas']
   })
-  if (clinica == null) return res.status(404).json({ message: 'Clinica não encontrada' })
+  if (clinica == null) {
+    throw new AppError('Clinica não encontrada', Status.NOT_FOUND)
+  }
 
   const especialistasDaClinica = clinica.especialistas
   return res.json(especialistasDaClinica)
@@ -105,13 +107,17 @@ export const atualizaEspecialistaPeloIdDaClinica = async (req: Request, res: Res
   const especialista = await AppDataSource.manager.findOne(Especialista, {
     where: { id: especialistaId }
   })
-  if (especialista == null) { return res.status(404).json({ message: 'Especialista não encontrado' }) }
+  if (especialista == null) { 
+    throw new AppError('Especialista não encontrado', Status.NOT_FOUND)
+  }
 
   // buscando clinica do id especificado
   const clinica = await AppDataSource.manager.findOne(Clinica, {
     where: { id }
   })
-  if (clinica == null) { return res.status(404).json({ message: 'Clinica não encontrada' }) }
+  if (clinica == null) { 
+    throw new AppError('Clinica não encontrada', Status.NOT_FOUND)
+  }
 
   // atualizando clinica do especialista e salvando
   especialista.clinica = clinica
