@@ -20,6 +20,7 @@ export const criarEspecialista = async (
   req: Request,
   res: Response
 ): Promise<void> => {
+  req.log.info('Iniciando criação do especialista')
   let { nome, crm, imagem, especialidade, endereco, email, telefone, estaAtivo, possuiPlanoSaude, planosSaude, senha } = req.body
 
   if (possuiPlanoSaude === true && planosSaude !== undefined) {
@@ -58,8 +59,10 @@ export const criarEspecialista = async (
     res.status(200).json(especialista)
   } catch (error) {
     if ((await AppDataSource.manager.findOne(Especialista, { where: { crm } })) != null) {
+      req.log.error(error)
       throw new AppError('CRM já cadastrado', Status.CONFLICT)
     } else {
+      req.log.error(error)
       throw new AppError('Especialista não foi criado', Status.BAD_GATEWAY)
     }
   }
@@ -74,6 +77,7 @@ export const especialistaById = async (req: Request, res: Response): Promise<voi
   if (especialista !== null) {
     res.status(200).json(especialista)
   } else {
+    req.log.error(`Id não encontrado: ${id}`)
     throw new AppError('Id não encontrado ')
   }
 }
@@ -108,6 +112,7 @@ export const atualizarEspecialista = async (req: Request, res: Response): Promis
     await AppDataSource.manager.save(Especialista, especialistaUpdate)
     res.json(especialistaUpdate)
   } else {
+    req.log.error(`Id não encontrado: ${id}`)
     throw new AppError('Id não encontrado ')
   }
 }
@@ -125,6 +130,7 @@ export const apagarEspecialista = async (
     await AppDataSource.manager.remove(Especialista, especialistaDel)
     res.json({ message: 'Especialista apagado!' })
   } else {
+    req.log.error(`Id não encontrado: ${id}`)
     throw new AppError('Id não encontrado')
   }
 }
@@ -150,6 +156,7 @@ export const atualizaContato = async (
       .execute()
     res.status(200).json(buscaEspecialista)
   } else {
+    req.log.error(`Telefone não atualizado para o Id: ${id}`)
     throw new AppError('Telefone não atualizado')
   }
 }

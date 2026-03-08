@@ -1,11 +1,9 @@
 import { type Request, type Response } from 'express'
 import { Autenticaveis } from './authEntity.js'
 import { access, refresh } from './tokens.js'
-
 import { AppDataSource } from '../data-source.js'
 import { AppError } from '../error/ErrorHandler.js'
 import { decryptPassword } from '../utils/senhaUtils.js'
-import { logger } from '../logger.js'
 
 export const login = async (req: Request, res: Response): Promise<Response> => {
   const { email, senha } = req.body
@@ -17,7 +15,7 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
     })
 
     if (autenticavel == null) {
-      logger.warn(`Token válido, mas usuário não encontrado: ${req.userId}`)
+      req.log.error(`Token válido, mas usuário não encontrado: ${req.userId}`)
       throw new AppError('Não encontrado!', 404)
     }
 
@@ -37,14 +35,14 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
   })
 
   if (autenticavel == null) {
-    logger.warn(`Tentativa de login com email não encontrado: ${String(email)}`)
+    req.log.error(`Tentativa de login com email não encontrado: ${String(email)}`)
     throw new AppError('Não encontrado!', 404)
   } else {
     const { id, rota, role, senha: senhaAuth } = autenticavel
     const senhaCorrespondente = decryptPassword(senhaAuth)
 
     if (senha !== senhaCorrespondente) {
-      logger.warn(`Tentativa de login com senha incorreta para o email: ${String(email)}`)
+      req.log.error(`Tentativa de login com senha incorreta para o email: ${String(email)}`)
       throw new AppError('Senha incorreta!', 401)
     }
 

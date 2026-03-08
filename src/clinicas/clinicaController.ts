@@ -92,6 +92,7 @@ export const listaEspecialistasPorClinica = async (req: Request, res: Response):
     relations: ['especialistas']
   })
   if (clinica == null) {
+    req.log.error(`Clinica com id ${id} não encontrada`)
     throw new AppError('Clinica não encontrada', Status.NOT_FOUND)
   }
 
@@ -101,13 +102,14 @@ export const listaEspecialistasPorClinica = async (req: Request, res: Response):
 
 export const atualizaEspecialistaPeloIdDaClinica = async (req: Request, res: Response): Promise<Response> => {
   const { id } = req.params
-  const { especialistaId } = req.body
+  const { especialistaId } = req.body as { especialistaId: string }
 
   // buscando especialista do id especificado
   const especialista = await AppDataSource.manager.findOne(Especialista, {
     where: { id: especialistaId }
   })
-  if (especialista == null) { 
+  if (especialista == null) {
+    req.log.error(`Especialista com id ${especialistaId} não encontrado`)
     throw new AppError('Especialista não encontrado', Status.NOT_FOUND)
   }
 
@@ -115,7 +117,8 @@ export const atualizaEspecialistaPeloIdDaClinica = async (req: Request, res: Res
   const clinica = await AppDataSource.manager.findOne(Clinica, {
     where: { id }
   })
-  if (clinica == null) { 
+  if (clinica == null) {
+    req.log.error(`Clinica com id ${id} não encontrada`)
     throw new AppError('Clinica não encontrada', Status.NOT_FOUND)
   }
 

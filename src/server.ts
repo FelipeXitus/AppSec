@@ -14,10 +14,12 @@ import rotaEspecialista from './especialistas/especialistaRoutes.js'
 import rotaPaciente from './pacientes/pacienteRoutes.js'
 import rotaPlanoDeSaude from './planosDeSaude/planosDeSaudeRoutes.js'
 import faltamVariaveisDeAmbiente from './utils/serverUtils.js'
-import { resolve, dirname } from 'path'
+import { logger } from './logger.js'
+import pino_http from 'pino-http'
 
-const __filename = import.meta.url.substring(7)
-const __dirname = dirname(__filename)
+const httpLogger = pino_http({
+  logger
+})
 
 await faltamVariaveisDeAmbiente()
 
@@ -40,17 +42,18 @@ const corsOpts = {
 
 app.use(cors(corsOpts))
 
+app.use(httpLogger)
 app.use(express.json())
 app.use(express.urlencoded({ extended: true })) // envio de arquivo
 // app.use("/images", express.static(resolve(__dirname, '..', 'tmp', 'uploads')))
-app.use(express.static("tmp"))
+app.use(express.static('tmp'))
 
 AppDataSource.initialize()
   .then(() => {
-    console.log('App Data Source inicializado')
+    logger.info('App Data Source inicializado')
   })
   .catch((error) => {
-    console.error(error)
+    logger.error(error)
   })
 
 rotaPaciente(app)

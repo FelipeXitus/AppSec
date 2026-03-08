@@ -28,6 +28,7 @@ export const criaAvaliacao = async (req: Request, res: Response): Promise<void> 
   const avaliacao = new Avaliacoes()
 
   if ((especialista == null) || (paciente == null)) {
+    req.log.error(`Especialista ou Paciente não encontrado. idEspecialista: ${String(idEspecialista)}, idPaciente: ${String(idPaciente)}`)
     throw new AppError('Especialista ou Paciente não encontrado', Status.NOT_FOUND)
   }
 

@@ -9,7 +9,6 @@ import { AppError, Status } from '../error/ErrorHandler.js'
 import { encryptPassword } from '../utils/senhaUtils.js'
 import { pacienteSchema } from './pacienteYupSchema.js'
 import { sanitizacaoPaciente } from './pacienteSanitizations.js'
-import { logger } from '../logger.js'
 
 export const consultaPorPaciente = async (
   req: Request,
@@ -25,7 +24,7 @@ export const consultaPorPaciente = async (
       res.status(200).json(listaPacientes)
     }
   } catch (error) {
-    logger.error('Erro ao consultar paciente', error)
+    req.log.error('Erro ao consultar paciente', error)
     throw new AppError('Erro ao consultar paciente', Status.INTERNAL_SERVER_ERROR)
   }
 }
@@ -34,7 +33,7 @@ export const criarPaciente = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  logger.info('Iniciando criação de paciente')
+  req.log.info('Iniciando criação de paciente')
   const pacienteData = req.body
   const pacienteSanitizado: Paciente = sanitizacaoPaciente(pacienteData)
   await pacienteSchema.validate(pacienteSanitizado)
@@ -53,14 +52,14 @@ export const criarPaciente = async (
     historico
   } = pacienteSanitizado
   if (!CPFValido(cpf)) {
-    logger.warn('CPF inválido fornecido: ' + cpf)
+    req.log.error('CPF inválido fornecido: ' + cpf)
     throw new AppError('CPF Inválido!', Status.BAD_REQUEST)
   }
   const existePacienteComCPF = await AppDataSource.getRepository(Paciente).findOne({
     where: { cpf }
   })
   if (existePacienteComCPF != null) {
-    logger.warn('Tentativa de criar paciente com CPF já existente: ' + cpf)
+    req.log.error('Tentativa de criar paciente com CPF já existente: ' + cpf)
     throw new AppError('Já existe um paciente cadastrado com esse CPF!', Status.CONFLICT)
   }
   if (possuiPlanoSaude && planosSaude !== undefined) {
@@ -101,7 +100,7 @@ export const criarPaciente = async (
 
     res.status(202).json(pacienteSemDadosSensiveis)
   } catch (error) {
-    logger.error('Erro ao criar paciente', error)
+    req.log.error('Erro ao criar paciente', error)
     throw new AppError('Paciente não foi criado', Status.BAD_GATEWAY)
   }
 }
