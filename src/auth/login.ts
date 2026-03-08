@@ -15,7 +15,7 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
     })
 
     if (autenticavel == null) {
-      req.log.error(`Token válido, mas usuário não encontrado: ${req.userId}`)
+      req.security_log.error(`Token válido, mas usuário não encontrado: ${req.userId}`)
       throw new AppError('Não encontrado!', 404)
     }
 
@@ -35,14 +35,14 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
   })
 
   if (autenticavel == null) {
-    req.log.error(`Tentativa de login com email não encontrado: ${String(email)}`)
+    req.security_log.error(`Tentativa de login com email não encontrado: ${String(email)}`)
     throw new AppError('Não encontrado!', 404)
   } else {
     const { id, rota, role, senha: senhaAuth } = autenticavel
     const senhaCorrespondente = decryptPassword(senhaAuth)
 
     if (senha !== senhaCorrespondente) {
-      req.log.error(`Tentativa de login com senha incorreta para o email: ${String(email)}`)
+      req.security_log.error(`Tentativa de login com senha incorreta para o email: ${String(email)}`)
       throw new AppError('Senha incorreta!', 401)
     }
 
@@ -64,5 +64,6 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
   if (token != null) {
     await access.invalida(token)
   }
+  req.security_log.info('Logout realizado com sucesso!')
   res.status(204).json({ auth: false, token: null, message: 'Logout realizado com sucesso!' })
 }

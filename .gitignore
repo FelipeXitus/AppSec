@@ -7,4 +7,4 @@ temp/
 db_data/
 database/
 mysql
-logs/pino.log
+logs/

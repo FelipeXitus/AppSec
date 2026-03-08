@@ -14,12 +14,31 @@ import rotaEspecialista from './especialistas/especialistaRoutes.js'
 import rotaPaciente from './pacientes/pacienteRoutes.js'
 import rotaPlanoDeSaude from './planosDeSaude/planosDeSaudeRoutes.js'
 import faltamVariaveisDeAmbiente from './utils/serverUtils.js'
-import { logger } from './logger.js'
+import { logger, loggerSecurity } from './logger.js'
 import pino_http from 'pino-http'
+import pino from 'pino'
 
 const httpLogger = pino_http({
   logger
 })
+
+declare module 'express' {
+  interface Request {
+    security_log: pino.Logger
+  }
+}
+
+const loggerSecurityMiddleware = (req, res, next) => {
+  req.security_log = loggerSecurity.child({
+    req: {
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      id: req.id
+    }
+  })
+  next()
+}
 
 await faltamVariaveisDeAmbiente()
 
@@ -43,6 +62,7 @@ const corsOpts = {
 app.use(cors(corsOpts))
 
 app.use(httpLogger)
+app.use(loggerSecurityMiddleware)
 app.use(express.json())
 app.use(express.urlencoded({ extended: true })) // envio de arquivo
 // app.use("/images", express.static(resolve(__dirname, '..', 'tmp', 'uploads')))

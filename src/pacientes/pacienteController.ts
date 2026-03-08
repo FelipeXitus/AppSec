@@ -269,6 +269,7 @@ export const desativaPaciente = async (
   req: Request,
   res: Response
 ): Promise<void> => {
+  req.log.info('Desativando paciente de id: ' + req.params.id)
   const { id } = req.params
   const paciente = await AppDataSource.manager.findOne(Paciente, {
     where: { id }
