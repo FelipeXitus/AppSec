@@ -24,7 +24,7 @@ export const consultaPorPaciente = async (
       res.status(200).json(listaPacientes)
     }
   } catch (error) {
-    req.log.error('Erro ao consultar paciente', error)
+    req.log.error({ err: error }, 'Erro ao consultar paciente')
     throw new AppError('Erro ao consultar paciente', Status.INTERNAL_SERVER_ERROR)
   }
 }
@@ -100,7 +100,7 @@ export const criarPaciente = async (
 
     res.status(202).json(pacienteSemDadosSensiveis)
   } catch (error) {
-    req.log.error('Erro ao criar paciente', error)
+    req.log.error({ err: error }, 'Erro ao criar paciente')
     throw new AppError('Paciente não foi criado', Status.BAD_GATEWAY)
   }
 }
